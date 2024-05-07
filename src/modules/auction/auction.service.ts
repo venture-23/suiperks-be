@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { BaseService } from '../base/base.service';
 import AuctionModel from './auction.modal';
-import { IAuctionBidEvent, IAuctionDocument } from './auction.interface';
+import { IAuctionBidEvent, IAuctionDocument, IAuctionMetadata, IAuctionSettleData } from './auction.interface';
 import SuiClientService from '@/services/sui.client.service';
 import { AppConfig } from '@/config';
 import { TransactionBlock } from '@mysten/sui.js/transactions';
@@ -10,12 +10,13 @@ import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
 
 export class AuctionService extends BaseService<IAuctionDocument> {
   static instance: null | AuctionService;
-  private SuiClient = new SuiClientService();
+  private SuiClient: SuiClientService;
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor(repository = AuctionModel) {
     super(repository);
-    setInterval(() => this.SuiClient.fetchEvents(`${AppConfig.package_id}::auction::AuctionInfoEvent`, this.bidAuction), 5000);
+    this.SuiClient = new SuiClientService();
+    setInterval(() => this.SuiClient.fetchEvents(`${AppConfig.package_id}::auction::AuctionEvent`, this.bidAuction), 5000);
   }
 
   static getInstance() {
@@ -25,7 +26,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
     return this.instance;
   }
 
-  async createAuction() {
+  async createAuction({ nftDescription, nftImage, nftName, title, description }: IAuctionMetadata) {
     const SuiClient = new SuiClientService();
     const tx = new TransactionBlock();
 
@@ -37,53 +38,57 @@ export class AuctionService extends BaseService<IAuctionDocument> {
     const result = await SuiClient.client.signAndExecuteTransactionBlock({
       signer: SuiClient.keypair,
       transactionBlock: tx,
-    });
-    console.log(result.digest);
-    const digest_ = result.digest;
-
-    const txn = await SuiClient.client.getTransactionBlock({
-      digest: String(digest_),
-      // only fetch the effects and objects field
       options: {
-        showEffects: true,
-        showInput: false,
-        showEvents: false,
+        showEvents: true,
         showObjectChanges: true,
-        showBalanceChanges: false,
       },
     });
-    const output = txn.objectChanges;
-    let AuctionInfo;
-    for (let i = 0; i < output.length; i++) {
-      const item = output[i];
-      if ((await item.type) === 'created') {
-        if ((await item.objectType) === `${AppConfig.package_id}::auction::AuctionInfo<0x2::sui::SUI>`) {
-          AuctionInfo = String(item.objectId);
-        }
-      }
-    }
-    console.log(`AuctionInfo: ${AuctionInfo}`);
+
+    const txResponse = result.events[0].parsedJson as any;
+    await this.repository.create({
+      uid: txResponse?.auction_id,
+      nftImage,
+      nftName,
+      nftDescription,
+      title,
+      description,
+      amount: Number(txResponse?.amount),
+      reservePrice: Number(txResponse?.reserve_price),
+      duration: Number(txResponse?.duration),
+      startTime: new Date(Number(txResponse?.start_time)),
+      endTime: new Date(Number(txResponse?.end_time)),
+      minBidIncrementPercentage: Number(txResponse?.min_bid_increment_percentage),
+    });
   }
 
   async bidAuction(bidEvent: PaginatedEvents) {
-    console.log({ bidEvent });
-    return;
+    if (bidEvent.data.length === 0) return;
+    const bid = bidEvent.data[0].parsedJson as any;
+    console.log(bid);
+    const previousBid = await AuctionModel.findOne({ uid: bid?.auction_id, settled: false });
+
+    if (!previousBid || previousBid.amount > bid?.current_amount) return; //Since this record is already added
+    await AuctionModel.updateOne(
+      { uid: bid?.auction_id, settled: false },
+      {
+        $push: { funds: { address: bid?.highest_bidder, balance: bid?.current_amount } },
+        $set: { amount: bid?.next_auction_amount, highestBidder: bid?.highest_bidder },
+      },
+    );
   }
 
-  async settleBid() {
+  async settleBid({ auctionInfo, nftName, nftDescription, nftImage }: IAuctionSettleData) {
     const SuiClient = new SuiClientService();
     const tx = new TransactionBlock();
 
     tx.moveCall({
       target: `${AppConfig.package_id}::auction::settle_bid`,
       arguments: [
-        tx.pure.string('OxNFT #1'),
-        tx.pure.string('random description'),
-        tx.pure.string(
-          'https://cdn.leonardo.ai/users/84487ea6-407f-45f2-952f-05212bc952a4/generations/0208653b-fdf6-4bec-9c52-1b649f9262df/variations/Default_Japanese_tshirt_designs_like_tattoos_full_of_pictures_2_0208653b-fdf6-4bec-9c52-1b649f9262df_1.jpg?w=512',
-        ),
+        tx.pure.string(nftName),
+        tx.pure.string(nftDescription),
+        tx.pure.string(nftImage),
         tx.object(AppConfig.dao_treasury),
-        tx.object(AppConfig.auction_info),
+        tx.object(auctionInfo),
         tx.object(SUI_CLOCK_OBJECT_ID),
       ],
       typeArguments: ['0x2::sui::SUI'],
@@ -91,32 +96,17 @@ export class AuctionService extends BaseService<IAuctionDocument> {
     const result = await SuiClient.client.signAndExecuteTransactionBlock({
       signer: SuiClient.keypair,
       transactionBlock: tx,
-    });
-    console.log(result.digest);
-    const digest_ = result.digest;
-
-    const txn = await SuiClient.client.getTransactionBlock({
-      digest: String(digest_),
-      // only fetch the effects and objects field
       options: {
-        showEffects: true,
-        showInput: false,
-        showEvents: false,
+        showEvents: true,
         showObjectChanges: true,
-        showBalanceChanges: false,
       },
     });
-    const output = txn.objectChanges;
-    let OxNFT;
-    for (let i = 0; i < output.length; i++) {
-      const item = output[i];
-      if ((await item.type) === 'created') {
-        if ((await item.objectType) === `${AppConfig.package_id}::oxdao_nft::OxDaoNFT`) {
-          OxNFT = String(item.objectId);
-        }
-      }
-    }
-    console.log(`OxNFT: ${OxNFT}`);
+    console.log(result.events);
+    const txResponse = result.events[0].parsedJson as any;
+    const treasury = txResponse?.total_amount;
+
+    const response = await this.repository.findOneAndUpdate({ uid: auctionInfo, settled: false }, { $set: { settled: true } });
+    if (!response) throw new Error('Auction not found or already setteled');
   }
 }
 

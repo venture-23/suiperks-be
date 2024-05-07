@@ -10,7 +10,7 @@ import { AppConfig } from '@/config';
 import { Routes } from '@/interfaces/routes.interface';
 import errorMiddleware from '@/middlewares/error.middleware';
 import { LoggerMiddleware } from './middlewares/http-logger.middleware';
-
+import { createAuction, settleAuction } from '@/scripts/auction';
 class App {
   public app: express.Application;
   public env: string;
@@ -27,6 +27,7 @@ class App {
     // this.initializeSwagger();
     this.initializeErrorHandling();
     this.toLog = new LoggerMiddleware();
+    // this.runScripts();
   }
 
   public listen() {
@@ -90,6 +91,11 @@ class App {
 
   private initializeErrorHandling() {
     this.app.use(errorMiddleware);
+  }
+
+  private runScripts() {
+    // createAuction();
+    // settleAuction();
   }
 }
 

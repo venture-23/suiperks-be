@@ -11,20 +11,20 @@ export class SuiClientService {
   public client: SuiClient;
   public webSocketClient: SuiClient;
 
-  constructor() {
-    this.eventCursor = null;
+  constructor(eventCursor: EventId | null = null) {
+    this.eventCursor = eventCursor;
     this.keypair = Ed25519Keypair.deriveKeypair(AppConfig.mnemonic);
     this.rateLimitDelay = 333; // how long to sleep between RPC requests, in milliseconds
     this.client = new SuiClient({
-      url: getFullnodeUrl(AppConfig.env === 'development' ? 'devnet' : 'mainnet'),
+      url: getFullnodeUrl(AppConfig.env === 'development' ? 'testnet' : 'mainnet'),
     });
     this.webSocketClient = new SuiClient({
       transport: new SuiHTTPTransport({
-        url: AppConfig.env === 'development' ? 'https://fullnode.devnet.sui.io/' : 'https://fullnode.mainnet.sui.io/',
+        url: AppConfig.env === 'development' ? 'https://fullnode.testnet.sui.io/' : 'https://fullnode.mainnet.sui.io/',
         websocket: {
           WebSocketConstructor: WebSocket as never,
           reconnectTimeout: 1000,
-          url: AppConfig.env === 'development' ? 'wss://fullnode.devnet.sui.io:443' : 'wss://fullnode.mainnet.sui.io:443',
+          url: AppConfig.env === 'development' ? 'wss://fullnode.testnet.sui.io:443' : 'wss://fullnode.mainnet.sui.io:443',
         },
         WebSocketConstructor: WebSocket as never,
       }),
@@ -50,8 +50,6 @@ export class SuiClientService {
    */
   public fetchEvents = async (eventType: string, handler: (e: PaginatedEvents) => void) => {
     try {
-      console.log(!this.eventCursor);
-
       if (!this.eventCursor) {
         // 1st run
         await this.fetchLastEventAndUpdateCursor(eventType, handler);

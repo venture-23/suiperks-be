@@ -25,3 +25,18 @@ export interface IAuctionBidEvent {
   highest_bidder: string;
   next_auction_amount: number;
 }
+
+export interface IAuctionMetadata {
+  title: string;
+  description: string;
+  nftName: string;
+  nftDescription: string;
+  nftImage: string;
+}
+
+export interface IAuctionSettleData {
+  auctionInfo: string;
+  nftName: string;
+  nftDescription: string;
+  nftImage: string;
+}

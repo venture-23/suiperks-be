@@ -13,6 +13,10 @@ class AuctionRoute implements Routes {
 
   private initializeRoutes() {
     this.router.get(`${this.path}/all`, AuctionController.findAll);
+    this.router.get(`${this.path}/create`, AuctionController.createAuction);
+    this.router.get(`${this.path}/settle`, AuctionController.settleAuction);
+    this.router.get(`${this.path}/active`, AuctionController.findActiveAuction);
+    this.router.get(`${this.path}/winners`, AuctionController.findAllWinners);
     this.router.route(`${this.path}/:id`).get(AuctionController.findById);
   }
 }
