@@ -1,4 +1,3 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
 import { BaseService } from '../base/base.service';
 import ProposalModel from './proposal.modal';
 import { IProposalDocument, Status } from './proposal.interface';

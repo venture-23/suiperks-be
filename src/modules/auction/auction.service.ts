@@ -1,7 +1,6 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
 import { BaseService } from '../base/base.service';
 import AuctionModel from './auction.modal';
-import { IAuctionBidEvent, IAuctionDocument, IAuctionMetadata, IAuctionSettleData } from './auction.interface';
+import { IAuctionDocument, IAuctionMetadata, IAuctionSettleData } from './auction.interface';
 import SuiClientService from '@/services/sui.client.service';
 import { AppConfig } from '@/config';
 import { TransactionBlock } from '@mysten/sui.js/transactions';
@@ -10,13 +9,11 @@ import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
 
 export class AuctionService extends BaseService<IAuctionDocument> {
   static instance: null | AuctionService;
-  private SuiClient: SuiClientService;
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor(repository = AuctionModel) {
     super(repository);
-    this.SuiClient = new SuiClientService();
-    // setInterval(() => this.SuiClient.fetchEvents(`${AppConfig.package_id}::auction::AuctionEvent`, this.bidAuction), 5000);
+    setInterval(() => new SuiClientService().fetchEvents(`${AppConfig.package_id}::auction::AuctionEvent`, this.bidAuction), 5000);
   }
 
   static getInstance() {

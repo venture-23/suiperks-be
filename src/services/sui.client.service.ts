@@ -5,14 +5,14 @@ import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import WebSocket from 'ws';
 
 export class SuiClientService {
-  private eventCursor: EventId | null;
+  private eventCursor: Map<string, EventId> | null;
   private rateLimitDelay: number;
   public keypair: Ed25519Keypair;
   public client: SuiClient;
   public webSocketClient: SuiClient;
 
   constructor(eventCursor: EventId | null = null) {
-    this.eventCursor = eventCursor;
+    this.eventCursor.set('default', eventCursor);
     this.keypair = Ed25519Keypair.deriveKeypair(AppConfig.mnemonic);
     this.rateLimitDelay = 333; // how long to sleep between RPC requests, in milliseconds
     this.client = new SuiClient({
@@ -50,7 +50,7 @@ export class SuiClientService {
    */
   public fetchEvents = async (eventType: string, handler: (e: PaginatedEvents) => void) => {
     try {
-      if (!this.eventCursor) {
+      if (!this.eventCursor.get(eventType)) {
         // 1st run
         await this.fetchLastEventAndUpdateCursor(eventType, handler);
         return [];
@@ -58,7 +58,7 @@ export class SuiClientService {
         return await this.fetchEventsFromCursor(eventType, handler);
       }
     } catch (error) {
-      console.error('[SuiEventFetcher]', error);
+      console.error(`[SuiEventFetcher/${eventType.split('::')[2]}]`, error);
       return [];
     }
   };
@@ -74,9 +74,9 @@ export class SuiClientService {
 
     // update cursor
     if (!suiEvents.nextCursor) {
-      console.error('[SuiEventFetcher] unexpected missing cursor');
+      console.error(`[SuiEventFetcher/${eventType.split('::')[2]}] unexpected missing cursor`);
     } else {
-      this.eventCursor = suiEvents.nextCursor;
+      this.eventCursor.set(eventType, suiEvents.nextCursor);
       this.fetchEventsFromCursor(eventType, handler);
     }
   };
@@ -85,7 +85,7 @@ export class SuiClientService {
     // fetch events from cursor
     const suiEvents = await this.client.queryEvents({
       query: { MoveEventType: eventType },
-      cursor: this.eventCursor,
+      cursor: this.eventCursor.get(eventType),
       order: 'ascending',
       // limit: 10,
     });
@@ -93,10 +93,10 @@ export class SuiClientService {
 
     // update cursor
     if (!suiEvents.nextCursor) {
-      console.error('[SuiEventFetcher] unexpected missing cursor');
+      console.error(`[SuiEventFetcher/${eventType.split('::')[2]}] unexpected missing cursor`);
       return;
     }
-    this.eventCursor = suiEvents.nextCursor;
+    this.eventCursor.set(eventType, suiEvents.nextCursor);
 
     if (suiEvents.hasNextPage) {
       await sleep(this.rateLimitDelay);
