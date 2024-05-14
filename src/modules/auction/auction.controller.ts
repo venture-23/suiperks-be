@@ -47,6 +47,46 @@ export class AuctionController {
     }
   };
 
+  public getTreasuryBalance = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const response = await this.auctionService.find({ settled: true });
+
+      const balance = response.reduce((sum, auction) => sum + auction.funds.at(-1).balance, 0);
+      console.log(balance);
+      return res.status(HttpStatus.OK).send({ balance });
+    } catch (error) {
+      console.error('Error in finding:', error);
+      return next(error);
+    }
+  };
+
+  public getOwnedNFT = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { walletAddress } = req.params;
+
+      const ownedNFT = await this.auctionService.repository
+        .find({ settled: true, highestBidder: walletAddress })
+        .select('nftImage nftName nftDescription');
+      const response = ownedNFT
+        ? {
+            type: 'success',
+            statusCode: 200,
+            message: 'NFT List',
+            ownedNFT,
+          }
+        : {
+            type: 'success',
+            statusCode: 200,
+            message: 'No NFT found',
+            ownedNFT: null,
+          };
+      return res.status(HttpStatus.OK).send(response);
+    } catch (error) {
+      console.error('Error in finding:', error);
+      return next(error);
+    }
+  };
+
   public findActiveAuction = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const response = await this.auctionService.repository.findOne({ settled: false }).sort({ createdAt: -1 });

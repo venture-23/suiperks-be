@@ -16,7 +16,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
   private constructor(repository = AuctionModel) {
     super(repository);
     this.SuiClient = new SuiClientService();
-    setInterval(() => this.SuiClient.fetchEvents(`${AppConfig.package_id}::auction::AuctionEvent`, this.bidAuction), 5000);
+    // setInterval(() => this.SuiClient.fetchEvents(`${AppConfig.package_id}::auction::AuctionEvent`, this.bidAuction), 5000);
   }
 
   static getInstance() {

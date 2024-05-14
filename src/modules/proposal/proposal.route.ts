@@ -4,7 +4,7 @@ import { AppConfig } from '@/config';
 import { Routes } from '@/interfaces/routes.interface';
 
 class ProposalRoute implements Routes {
-  public path = `/${AppConfig.versioning}/result`;
+  public path = `/${AppConfig.versioning}/proposal`;
   public router = Router();
 
   constructor() {
@@ -13,6 +13,7 @@ class ProposalRoute implements Routes {
 
   private initializeRoutes() {
     this.router.get(`${this.path}/all`, ProposalController.findAll);
+    this.router.post(`${this.path}/create`, ProposalController.createProposal);
     this.router.route(`${this.path}/:id`).get(ProposalController.findById);
     // .put([authMiddleware, adminOnly()], ProposalController.updateById)
     // .delete([authMiddleware, adminOnly()], ProposalController.deleteById);

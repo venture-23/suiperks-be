@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { HttpStatus } from '@nestjs/common';
 import ProposalService from './proposal.service';
+import { IProposal } from './proposal.interface';
+import { sha224 } from 'js-sha256';
 
 export class ProposalController {
   static instance: null | ProposalController;
@@ -14,6 +16,17 @@ export class ProposalController {
     }
     return this.instance;
   }
+  public createProposal = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const auctionMetadata: Partial<IProposal> = req.body;
+      const hash = sha224(auctionMetadata.title + auctionMetadata.details);
+      const response = await this.proposalService.create({ ...auctionMetadata, hash });
+      return res.status(HttpStatus.OK).send({ ...response.toObject(), hash });
+    } catch (error) {
+      console.error('Error in finding by id:', error);
+      return next(error);
+    }
+  };
 
   public findAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
