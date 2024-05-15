@@ -1,15 +1,13 @@
 import { AppConfig } from '@/config';
 import { sleep } from '@/utils/util';
-import { EventId, getFullnodeUrl, PaginatedEvents, SuiClient, SuiEvent, SuiEventFilter, SuiHTTPTransport } from '@mysten/sui.js/client';
+import { EventId, getFullnodeUrl, PaginatedEvents, SuiClient } from '@mysten/sui.js/client';
 import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
-import WebSocket from 'ws';
 
 export class SuiClientService {
   private eventCursor: Map<string, EventId | null> = new Map();
   private rateLimitDelay: number;
   public keypair: Ed25519Keypair;
   public client: SuiClient;
-  public webSocketClient: SuiClient;
 
   constructor() {
     this.keypair = Ed25519Keypair.deriveKeypair(AppConfig.mnemonic);
@@ -17,31 +15,7 @@ export class SuiClientService {
     this.client = new SuiClient({
       url: getFullnodeUrl(AppConfig.env === 'development' ? 'testnet' : 'mainnet'),
     });
-    this.webSocketClient = new SuiClient({
-      transport: new SuiHTTPTransport({
-        url: AppConfig.env === 'development' ? 'https://fullnode.testnet.sui.io/' : 'https://fullnode.mainnet.sui.io/',
-        websocket: {
-          WebSocketConstructor: WebSocket as never,
-          reconnectTimeout: 1000,
-          url: AppConfig.env === 'development' ? 'wss://fullnode.testnet.sui.io:443' : 'wss://fullnode.mainnet.sui.io:443',
-        },
-        WebSocketConstructor: WebSocket as never,
-      }),
-    });
   }
-
-  subscribeEvent = async (eventType: string, handler: (e: SuiEvent) => void) => {
-    const eventFilter: SuiEventFilter = {
-      Package: AppConfig.package_id,
-    };
-    await this.webSocketClient.subscribeEvent({
-      filter: eventFilter,
-      onMessage: (event: SuiEvent) => {
-        if (event.type === `${AppConfig.package_id}::${eventType}`) handler(event);
-      },
-    });
-    console.log('subscribed to :', eventType);
-  };
 
   /**
    * Fetch the latest events. Every time the function is called it looks
