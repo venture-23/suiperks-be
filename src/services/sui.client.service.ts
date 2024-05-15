@@ -5,14 +5,13 @@ import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import WebSocket from 'ws';
 
 export class SuiClientService {
-  private eventCursor: Map<string, EventId> | null;
+  private eventCursor: Map<string, EventId | null> = new Map();
   private rateLimitDelay: number;
   public keypair: Ed25519Keypair;
   public client: SuiClient;
   public webSocketClient: SuiClient;
 
-  constructor(eventCursor: EventId | null = null) {
-    this.eventCursor.set('default', eventCursor);
+  constructor() {
     this.keypair = Ed25519Keypair.deriveKeypair(AppConfig.mnemonic);
     this.rateLimitDelay = 333; // how long to sleep between RPC requests, in milliseconds
     this.client = new SuiClient({
@@ -49,6 +48,8 @@ export class SuiClientService {
    * for events that took place since the last call.
    */
   public fetchEvents = async (eventType: string, handler: (e: PaginatedEvents) => void) => {
+    console.log('size', this.eventCursor.size);
+
     try {
       if (!this.eventCursor.get(eventType)) {
         // 1st run

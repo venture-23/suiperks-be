@@ -15,8 +15,8 @@ class AuctionRoute implements Routes {
     this.router.get(`/${AppConfig.versioning}/treasury-balance`, AuctionController.getTreasuryBalance);
     this.router.get(`/${AppConfig.versioning}/user-nfts/:walletAddress`, AuctionController.getOwnedNFT);
     this.router.get(`${this.path}/all`, AuctionController.findAll);
-    this.router.get(`${this.path}/create`, AuctionController.createAuction);
-    this.router.get(`${this.path}/settle`, AuctionController.settleAuction);
+    this.router.post(`${this.path}/create`, AuctionController.createAuction);
+    this.router.post(`${this.path}/settle`, AuctionController.settleAuction);
     this.router.get(`${this.path}/active`, AuctionController.findActiveAuction);
     this.router.get(`${this.path}/winners`, AuctionController.findAllWinners);
     this.router.route(`${this.path}/:id`).get(AuctionController.findById);

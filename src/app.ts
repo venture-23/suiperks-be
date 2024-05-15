@@ -10,7 +10,7 @@ import { AppConfig } from '@/config';
 import { Routes } from '@/interfaces/routes.interface';
 import errorMiddleware from '@/middlewares/error.middleware';
 import { LoggerMiddleware } from './middlewares/http-logger.middleware';
-import { createAuction, settleAuction } from '@/scripts/auction';
+
 class App {
   public app: express.Application;
   public env: string;
@@ -24,10 +24,8 @@ class App {
     this.connectToDatabase();
     this.initializeMiddlewares();
     this.initializeRoutes(routes);
-    // this.initializeSwagger();
     this.initializeErrorHandling();
     this.toLog = new LoggerMiddleware();
-    // this.runScripts();
   }
 
   public listen() {
@@ -73,29 +71,8 @@ class App {
     });
   }
 
-  // private initializeSwagger() {
-  //   const options = {
-  //     swaggerDefinition: {
-  //       info: {
-  //         title: 'REST API',
-  //         version: '1.0.0',
-  //         description: 'Example docs',
-  //       },
-  //     },
-  //     apis: ['swagger.yaml'],
-  //   };
-
-  //   const specs = swaggerJSDoc(options);
-  //   this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-  // }
-
   private initializeErrorHandling() {
     this.app.use(errorMiddleware);
-  }
-
-  private runScripts() {
-    // createAuction();
-    // settleAuction();
   }
 }
 

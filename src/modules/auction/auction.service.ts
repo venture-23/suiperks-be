@@ -9,11 +9,13 @@ import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
 
 export class AuctionService extends BaseService<IAuctionDocument> {
   static instance: null | AuctionService;
+  private SuiClient: SuiClientService;
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor(repository = AuctionModel) {
     super(repository);
-    setInterval(() => new SuiClientService().fetchEvents(`${AppConfig.package_id}::auction::AuctionEvent`, this.bidAuction), 5000);
+    this.SuiClient = new SuiClientService();
+    setInterval(() => this.SuiClient.fetchEvents(`${AppConfig.package_id}::auction::AuctionEvent`, this.bidAuction), 5000);
   }
 
   static getInstance() {
