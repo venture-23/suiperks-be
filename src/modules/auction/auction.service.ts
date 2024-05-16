@@ -26,86 +26,94 @@ export class AuctionService extends BaseService<IAuctionDocument> {
   }
 
   async createAuction({ nftDescription, nftImage, nftName, title, description }: IAuctionMetadata) {
-    const SuiClient = new SuiClientService();
-    const tx = new TransactionBlock();
+    try {
+      const SuiClient = new SuiClientService();
+      const tx = new TransactionBlock();
 
-    tx.moveCall({
-      target: `${AppConfig.package_id}::auction::create_auction`,
-      arguments: [tx.pure.u64('100000000'), tx.object(SUI_CLOCK_OBJECT_ID)],
-      typeArguments: ['0x2::sui::SUI'],
-    });
-    const result = await SuiClient.client.signAndExecuteTransactionBlock({
-      signer: SuiClient.keypair,
-      transactionBlock: tx,
-      options: {
-        showEvents: true,
-        showObjectChanges: true,
-      },
-    });
+      tx.moveCall({
+        target: `${AppConfig.package_id}::auction::create_auction`,
+        arguments: [tx.pure.u64('100000000'), tx.object(SUI_CLOCK_OBJECT_ID)],
+        typeArguments: ['0x2::sui::SUI'],
+      });
+      const result = await SuiClient.client.signAndExecuteTransactionBlock({
+        signer: SuiClient.keypair,
+        transactionBlock: tx,
+        options: {
+          showEvents: true,
+          showObjectChanges: true,
+        },
+      });
 
-    const txResponse = result.events[0].parsedJson as any;
-    await this.repository.create({
-      uid: txResponse?.auction_id,
-      nftImage,
-      nftName,
-      nftDescription,
-      title,
-      description,
-      amount: Number(txResponse?.amount),
-      reservePrice: Number(txResponse?.reserve_price),
-      duration: Number(txResponse?.duration),
-      startTime: new Date(Number(txResponse?.start_time)),
-      endTime: new Date(Number(txResponse?.end_time)),
-      minBidIncrementPercentage: Number(txResponse?.min_bid_increment_percentage),
-    });
+      const txResponse = result.events[0].parsedJson as any;
+      await this.repository.create({
+        uid: txResponse?.auction_id,
+        nftImage,
+        nftName,
+        nftDescription,
+        title,
+        description,
+        amount: Number(txResponse?.amount),
+        reservePrice: Number(txResponse?.reserve_price),
+        duration: Number(txResponse?.duration),
+        startTime: new Date(Number(txResponse?.start_time)),
+        endTime: new Date(Number(txResponse?.end_time)),
+        minBidIncrementPercentage: Number(txResponse?.min_bid_increment_percentage),
+      });
+    } catch (error) {
+      console.log('[Auction/create]:', error);
+    }
   }
 
   async bidAuction(bidEvent: PaginatedEvents) {
-    if (bidEvent.data.length === 0) return;
-    const bid = bidEvent.data[0].parsedJson as any;
-    console.log(bid);
-    const previousBid = await AuctionModel.findOne({ uid: bid?.auction_id, settled: false });
+    try {
+      if (bidEvent.data.length === 0) return;
+      const bid = bidEvent.data[0].parsedJson as any;
+      const previousBid = await AuctionModel.findOne({ uid: bid?.auction_id, settled: false });
 
-    if (!previousBid || previousBid.amount > bid?.current_amount) return; //Since this record is already added
-    await AuctionModel.updateOne(
-      { uid: bid?.auction_id, settled: false },
-      {
-        $push: { funds: { address: bid?.highest_bidder, balance: bid?.current_amount } },
-        $set: { amount: bid?.next_auction_amount, highestBidder: bid?.highest_bidder },
-      },
-    );
+      if (!previousBid || previousBid.amount > bid?.current_bid_amount) return; //Since this record is already added
+      await AuctionModel.updateOne(
+        { uid: bid?.auction_id, settled: false },
+        {
+          $push: { funds: { address: bid?.highest_bidder, balance: bid?.current_bid_amount } },
+          $set: { amount: bid?.next_auction_amount, highestBidder: bid?.highest_bidder },
+        },
+      );
+    } catch (error) {
+      console.log('[Auction/PlaceBid]:', error);
+    }
   }
 
   async settleBid({ auctionInfo, nftName, nftDescription, nftImage }: IAuctionSettleData) {
-    const SuiClient = new SuiClientService();
-    const tx = new TransactionBlock();
+    try {
+      const SuiClient = new SuiClientService();
+      const tx = new TransactionBlock();
 
-    tx.moveCall({
-      target: `${AppConfig.package_id}::auction::settle_bid`,
-      arguments: [
-        tx.pure.string(nftName),
-        tx.pure.string(nftDescription),
-        tx.pure.string(nftImage),
-        tx.object(AppConfig.dao_treasury),
-        tx.object(auctionInfo),
-        tx.object(SUI_CLOCK_OBJECT_ID),
-      ],
-      typeArguments: ['0x2::sui::SUI'],
-    });
-    const result = await SuiClient.client.signAndExecuteTransactionBlock({
-      signer: SuiClient.keypair,
-      transactionBlock: tx,
-      options: {
-        showEvents: true,
-        showObjectChanges: true,
-      },
-    });
-    console.log(result.events);
-    const txResponse = result.events[0].parsedJson as any;
-    const treasury = txResponse?.total_amount;
+      tx.moveCall({
+        target: `${AppConfig.package_id}::auction::settle_bid`,
+        arguments: [
+          tx.pure.string(nftName),
+          tx.pure.string(nftDescription),
+          tx.pure.string(nftImage),
+          tx.object(AppConfig.dao_treasury),
+          tx.object(auctionInfo),
+          tx.object(SUI_CLOCK_OBJECT_ID),
+        ],
+        typeArguments: ['0x2::sui::SUI'],
+      });
+      await SuiClient.client.signAndExecuteTransactionBlock({
+        signer: SuiClient.keypair,
+        transactionBlock: tx,
+        options: {
+          showEvents: true,
+          showObjectChanges: true,
+        },
+      });
 
-    const response = await this.repository.findOneAndUpdate({ uid: auctionInfo, settled: false }, { $set: { settled: true } });
-    if (!response) throw new Error('Auction not found or already setteled');
+      const response = await this.repository.findOneAndUpdate({ uid: auctionInfo, settled: false }, { $set: { settled: true } });
+      if (!response) throw new Error('Auction not found or already setteled');
+    } catch (error) {
+      console.log('[Auction/SettleBid]:', error);
+    }
   }
 }
 

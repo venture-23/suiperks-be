@@ -10,6 +10,7 @@ const ProposalSchema: Schema<IProposalDocument> = new Schema({
   endTime: { type: Date },
   forVotes: { type: Number, default: 0 },
   againstVotes: { type: Number, default: 0 },
+  refrainVotes: { type: Number, default: 0 },
   forVoterList: {
     type: [
       {

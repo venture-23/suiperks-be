@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { HttpStatus } from '@nestjs/common';
 import ProposalService from './proposal.service';
-import { IProposal } from './proposal.interface';
+import { IProposal, Status } from './proposal.interface';
 import { sha224 } from 'js-sha256';
 
 export class ProposalController {
@@ -34,6 +34,17 @@ export class ProposalController {
       return res.status(HttpStatus.OK).send(response);
     } catch (error) {
       console.error('Error in finding:', error);
+      return next(error);
+    }
+  };
+
+  public failProposal = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { proposalId } = req.body;
+      const response = await this.proposalService.updateOne({ objectId: proposalId }, { $set: { status: Status.FAILED } });
+      return res.status(HttpStatus.OK).send(response);
+    } catch (error) {
+      console.error('Error in updating:', error);
       return next(error);
     }
   };

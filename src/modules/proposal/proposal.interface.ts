@@ -21,6 +21,7 @@ export interface IProposal {
   proposer: string;
   startTime: Date;
   endTime: Date;
+  refrainVotes: number;
   forVotes: number;
   againstVotes: number;
   forVoterList: IVote[];

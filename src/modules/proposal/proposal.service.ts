@@ -169,7 +169,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
             $pull: {
               forVoterList: { address: proposal.voter, nftId: proposal.nft, votedAt: { $exists: true } },
             },
-            $inc: { forVotes: -1 },
+            $inc: { forVotes: -1, refrainVotes: 1 },
           },
         );
       else
@@ -179,7 +179,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
             $pull: {
               againstVoterList: { address: proposal.voter, nftId: proposal.nft, votedAt: { $exists: true } },
             },
-            $inc: { againstVotes: -1 },
+            $inc: { againstVotes: -1, refrainVotes: 1 },
           },
         );
 
@@ -195,7 +195,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
       const proposal = proposalEvent.data[0].parsedJson as any;
       await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.QUEUE } });
     } catch (error) {
-      console.log('[Proposal/ExecuteProposal]:', error);
+      console.log('[Proposal/QueueProposal]:', error);
     }
   }
   async executeProposal(proposalEvent: PaginatedEvents) {

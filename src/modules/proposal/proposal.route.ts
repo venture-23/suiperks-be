@@ -14,6 +14,7 @@ class ProposalRoute implements Routes {
   private initializeRoutes() {
     this.router.get(`${this.path}/all`, ProposalController.findAll);
     this.router.post(`${this.path}/create`, ProposalController.createProposal);
+    this.router.post(`${this.path}/failed`, ProposalController.failProposal);
     this.router.route(`${this.path}/:id`).get(ProposalController.findById);
     // .put([authMiddleware, adminOnly()], ProposalController.updateById)
     // .delete([authMiddleware, adminOnly()], ProposalController.deleteById);

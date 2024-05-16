@@ -52,7 +52,6 @@ export class AuctionController {
       const response = await this.auctionService.find({ settled: true });
 
       const balance = response.reduce((sum, auction) => sum + auction.funds.at(-1).balance, 0);
-      console.log(balance);
       return res.status(HttpStatus.OK).send({ balance });
     } catch (error) {
       console.error('Error in finding:', error);

@@ -22,8 +22,6 @@ export class SuiClientService {
    * for events that took place since the last call.
    */
   public fetchEvents = async (eventType: string, handler: (e: PaginatedEvents) => void) => {
-    console.log('size', this.eventCursor.size);
-
     try {
       if (!this.eventCursor.get(eventType)) {
         // 1st run
