@@ -30,7 +30,7 @@ export class ProposalController {
 
   public findAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const response = await this.proposalService.find({});
+      const response = await this.proposalService.find({ objectId: { $exists: true } });
       return res.status(HttpStatus.OK).send(response);
     } catch (error) {
       console.error('Error in finding:', error);

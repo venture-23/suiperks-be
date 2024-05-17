@@ -66,7 +66,7 @@ export class AuctionController {
       const ownedNFT = await this.auctionService.repository
         .find({ settled: true, highestBidder: walletAddress })
         .select('nftImage nftName nftDescription nftId nftOwner');
-      if (!ownedNFT) throw new HttpException('No NFT found', HttpStatus.NOT_FOUND);
+      if (ownedNFT.length === 0) throw new HttpException('No NFT found', HttpStatus.NOT_FOUND);
 
       return res.status(HttpStatus.OK).send({
         type: 'success',

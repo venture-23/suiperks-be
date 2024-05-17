@@ -109,7 +109,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         },
       });
 
-      const txResponse = result.events[0].parsedJson as any;
+      const txResponse = result.events[3].parsedJson as any;
 
       const response = await this.repository.findOneAndUpdate(
         { uid: auctionInfo, settled: false },
