@@ -52,6 +52,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
         { $upsert: true },
       );
       await PointService.addPoints(proposal.proposer, 10);
+      setTimeout(async () => await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.ACTIVE } }), 1000);
     } catch (error) {
       console.log('[Proposal/create]:', error);
     }
