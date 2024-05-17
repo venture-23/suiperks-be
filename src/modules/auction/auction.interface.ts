@@ -5,6 +5,8 @@ export interface IAuction {
   nftImage: string;
   nftName: string;
   nftDescription: string;
+  nftId: string;
+  nftOwner: string;
   title: string;
   description: string;
   amount: number;

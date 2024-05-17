@@ -59,29 +59,6 @@ export class ProposalController {
       return next(error);
     }
   };
-
-  public updateById = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params;
-      const data = req.body;
-      const response = await this.proposalService.updateById(id, data);
-      return res.status(HttpStatus.OK).send(response);
-    } catch (error) {
-      console.error('Error in updating by id:', error);
-      return next(error);
-    }
-  };
-
-  public deleteById = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params;
-      const response = await this.proposalService.deleteOne({ _id: id });
-      return res.status(HttpStatus.OK).send(response);
-    } catch (error) {
-      console.error('Error in deleting:', error);
-      return next(error);
-    }
-  };
 }
 
 export default ProposalController.getInstance();

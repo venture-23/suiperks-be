@@ -100,7 +100,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         ],
         typeArguments: ['0x2::sui::SUI'],
       });
-      await SuiClient.client.signAndExecuteTransactionBlock({
+      const result = await SuiClient.client.signAndExecuteTransactionBlock({
         signer: SuiClient.keypair,
         transactionBlock: tx,
         options: {
@@ -109,7 +109,12 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         },
       });
 
-      const response = await this.repository.findOneAndUpdate({ uid: auctionInfo, settled: false }, { $set: { settled: true } });
+      const txResponse = result.events[0].parsedJson as any;
+
+      const response = await this.repository.findOneAndUpdate(
+        { uid: auctionInfo, settled: false },
+        { $set: { settled: true, nftId: txResponse?.nft_id, nftOwner: txResponse?.nft_owner } },
+      );
       if (!response) throw new Error('Auction not found or already setteled');
     } catch (error) {
       console.log('[Auction/SettleBid]:', error);

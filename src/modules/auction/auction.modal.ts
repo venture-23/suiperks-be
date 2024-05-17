@@ -6,6 +6,8 @@ const AuctionSchema: Schema<IAuctionDocument> = new Schema({
   nftImage: { type: String, required: true },
   nftName: { type: String, required: true },
   nftDescription: { type: String },
+  nftId: { type: String },
+  nftOwner: { type: String },
   title: { type: String, required: true },
   description: { type: String },
   amount: { type: Number, required: true },

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import AuctionService from './auction.service';
 
 export class AuctionController {
@@ -65,21 +65,15 @@ export class AuctionController {
 
       const ownedNFT = await this.auctionService.repository
         .find({ settled: true, highestBidder: walletAddress })
-        .select('nftImage nftName nftDescription');
-      const response = ownedNFT
-        ? {
-            type: 'success',
-            statusCode: 200,
-            message: 'NFT List',
-            ownedNFT,
-          }
-        : {
-            type: 'success',
-            statusCode: 200,
-            message: 'No NFT found',
-            ownedNFT: null,
-          };
-      return res.status(HttpStatus.OK).send(response);
+        .select('nftImage nftName nftDescription nftId nftOwner');
+      if (!ownedNFT) throw new HttpException('No NFT found', HttpStatus.NOT_FOUND);
+
+      return res.status(HttpStatus.OK).send({
+        type: 'success',
+        statusCode: 200,
+        message: 'NFT List',
+        ownedNFT,
+      });
     } catch (error) {
       console.error('Error in finding:', error);
       return next(error);
@@ -89,6 +83,8 @@ export class AuctionController {
   public findActiveAuction = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const response = await this.auctionService.repository.findOne({ settled: false }).sort({ createdAt: -1 });
+      if (!response) throw new HttpException('No active auction found', HttpStatus.NOT_FOUND);
+
       return res.status(HttpStatus.OK).send(response);
     } catch (error) {
       console.error('Error in finding:', error);
