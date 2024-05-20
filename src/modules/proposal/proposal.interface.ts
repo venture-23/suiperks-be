@@ -9,7 +9,7 @@ export enum Status {
   EXECUTED = 'Executed',
 }
 
-interface IVote {
+export interface IVote {
   address: string;
   nftId: string;
   votedAt: Date;

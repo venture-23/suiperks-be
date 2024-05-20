@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { HttpStatus } from '@nestjs/common';
 import ProposalService from './proposal.service';
-import { IProposal, Status } from './proposal.interface';
+import { IProposal, IVote, Status } from './proposal.interface';
 import { sha224 } from 'js-sha256';
+import AuctionService from '../auction/auction.service';
 
 export class ProposalController {
   static instance: null | ProposalController;
@@ -53,7 +54,26 @@ export class ProposalController {
     try {
       const { id } = req.params;
       const response = await this.proposalService.findById(id);
-      return res.status(HttpStatus.OK).send(response);
+      const refrainVoterList = await Promise.all(
+        response.refrainVoterList.map(async ({ nftId, address, votedAt }: IVote) => {
+          const nftDetails = await AuctionService.repository.findOne({ nftId }).select('nftImage nftName nftDescription nftId -_id');
+          return { ...nftDetails.toObject(), address, votedAt };
+        }),
+      );
+      const forVoterList = await Promise.all(
+        response.forVoterList.map(async ({ nftId, address, votedAt }: IVote) => {
+          const nftDetails = await AuctionService.repository.findOne({ nftId }).select('nftImage nftName nftDescription nftId -_id');
+          return { ...nftDetails.toObject(), address, votedAt };
+        }),
+      );
+      const againstVoterList = await Promise.all(
+        response.againstVoterList.map(async ({ nftId, address, votedAt }: IVote) => {
+          const nftDetails = await AuctionService.repository.findOne({ nftId }).select('nftImage nftName nftDescription nftId -_id');
+          return { ...nftDetails.toObject(), address, votedAt };
+        }),
+      );
+
+      return res.status(HttpStatus.OK).send({ ...response.toObject(), refrainVoterList, forVoterList, againstVoterList });
     } catch (error) {
       console.error('Error in finding by id:', error);
       return next(error);
