@@ -5,7 +5,6 @@ import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
 import SuiClientService from '@/services/sui.client.service';
 import { AppConfig } from '@/config';
 import PointService from '@/modules/points/points.service';
-import cron from 'node-cron';
 
 export class ProposalService extends BaseService<IProposalDocument> {
   static instance: null | ProposalService;

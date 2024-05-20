@@ -1,6 +1,7 @@
 import { Document } from 'mongoose';
 
 export enum Status {
+  INITIAL = 'Initial',
   WAITING = 'Waiting',
   ACTIVE = 'Active',
   FAILED = 'Failed',

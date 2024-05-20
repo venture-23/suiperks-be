@@ -49,7 +49,7 @@ const ProposalSchema: Schema<IProposalDocument> = new Schema({
   seekAmount: { type: Number, default: 0 },
   executable: { type: Boolean, default: false },
   executedHash: { type: String },
-  status: { type: String, enum: Object.values(Status), default: Status.WAITING },
+  status: { type: String, enum: Object.values(Status), default: Status.INITIAL },
   createdAt: { type: Date, default: Date.now },
 });
 
