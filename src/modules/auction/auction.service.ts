@@ -6,6 +6,7 @@ import { AppConfig } from '@/config';
 import { TransactionBlock } from '@mysten/sui.js/transactions';
 import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js/utils';
 import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 export class AuctionService extends BaseService<IAuctionDocument> {
   static instance: null | AuctionService;
@@ -89,6 +90,9 @@ export class AuctionService extends BaseService<IAuctionDocument> {
     try {
       const SuiClient = new SuiClientService();
       const tx = new TransactionBlock();
+
+      const auctionExist = await this.repository.findOne({ uid: auctionInfo, settled: false });
+      if (!auctionExist) throw new HttpException('Auction Not Found', HttpStatus.NOT_FOUND);
 
       tx.moveCall({
         target: `${AppConfig.package_id}::auction::settle_bid`,
