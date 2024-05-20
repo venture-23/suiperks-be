@@ -82,7 +82,6 @@ export class AuctionService extends BaseService<IAuctionDocument> {
       );
     } catch (error) {
       console.log('[Auction/PlaceBid]:', error);
-      throw new Error(error);
     }
   }
 
