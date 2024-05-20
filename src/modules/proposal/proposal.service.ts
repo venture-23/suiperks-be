@@ -5,6 +5,7 @@ import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
 import SuiClientService from '@/services/sui.client.service';
 import { AppConfig } from '@/config';
 import PointService from '@/modules/points/points.service';
+import cron from 'node-cron';
 
 export class ProposalService extends BaseService<IProposalDocument> {
   static instance: null | ProposalService;
@@ -52,7 +53,11 @@ export class ProposalService extends BaseService<IProposalDocument> {
         { $upsert: true },
       );
       await PointService.addPoints(proposal.proposer, 10);
-      setTimeout(async () => await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.ACTIVE } }), 1000);
+      setTimeout(async () => await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.ACTIVE } }), 60 * 1000);
+      setTimeout(
+        async () => await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.WAITING } }),
+        new Date(Number(proposal.end_time)).getTime() - Date.now(),
+      );
     } catch (error) {
       console.log('[Proposal/create]:', error);
     }
