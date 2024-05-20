@@ -59,6 +59,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
       );
     } catch (error) {
       console.log('[Proposal/create]:', error);
+      throw new Error(error);
     }
   }
 
@@ -105,6 +106,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
       await PointService.addPoints(proposal.voter, 5);
     } catch (error) {
       console.log('[Proposal/CastVote]:', error);
+      throw new Error(error);
     }
   }
   async changeVote(proposalEvent: PaginatedEvents) {
@@ -156,6 +158,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
       await PointService.addPoints(proposal.voter, 5);
     } catch (error) {
       console.log('[Proposal/ChangeVote]:', error);
+      throw new Error(error);
     }
   }
   async revokeVote(proposalEvent: PaginatedEvents) {
@@ -197,6 +200,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
       await PointService.addPoints(proposal.voter, -5);
     } catch (error) {
       console.log('[Proposal/RevokeVote]:', error);
+      throw new Error(error);
     }
   }
   async queueProposal(proposalEvent: PaginatedEvents) {
@@ -208,6 +212,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
       await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.QUEUE, executedHash: txHash } });
     } catch (error) {
       console.log('[Proposal/QueueProposal]:', error);
+      throw new Error(error);
     }
   }
   async executeProposal(proposalEvent: PaginatedEvents) {
@@ -218,6 +223,7 @@ export class ProposalService extends BaseService<IProposalDocument> {
       await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.EXECUTED } });
     } catch (error) {
       console.log('[Proposal/ExecuteProposal]:', error);
+      throw new Error(error);
     }
   }
 }

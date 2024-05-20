@@ -61,6 +61,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
       });
     } catch (error) {
       console.log('[Auction/create]:', error);
+      throw new Error(error);
     }
   }
 
@@ -80,6 +81,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
       );
     } catch (error) {
       console.log('[Auction/PlaceBid]:', error);
+      throw new Error(error);
     }
   }
 
@@ -118,6 +120,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
       if (!response) throw new Error('Auction not found or already setteled');
     } catch (error) {
       console.log('[Auction/SettleBid]:', error);
+      throw new Error(error);
     }
   }
 }
