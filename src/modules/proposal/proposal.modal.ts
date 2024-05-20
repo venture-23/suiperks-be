@@ -21,6 +21,16 @@ const ProposalSchema: Schema<IProposalDocument> = new Schema({
     ],
     default: [],
   },
+  refrainVoterList: {
+    type: [
+      {
+        address: { type: String },
+        nftId: { type: String },
+        votedAt: { type: Date },
+      },
+    ],
+    default: [],
+  },
   againstVoterList: {
     type: [
       {
@@ -38,6 +48,7 @@ const ProposalSchema: Schema<IProposalDocument> = new Schema({
   hash: { type: String },
   seekAmount: { type: Number, default: 0 },
   executable: { type: Boolean, default: false },
+  executedHash: { type: String },
   status: { type: String, enum: Object.values(Status), default: Status.WAITING },
   createdAt: { type: Date, default: Date.now },
 });

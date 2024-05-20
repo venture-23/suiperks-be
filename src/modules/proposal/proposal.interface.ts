@@ -25,6 +25,7 @@ export interface IProposal {
   forVotes: number;
   againstVotes: number;
   forVoterList: IVote[];
+  refrainVoterList: IVote[];
   againstVoterList: IVote[];
   eta: number;
   actionDelay: number;
@@ -34,6 +35,7 @@ export interface IProposal {
   status: Status;
   seekAmount: number;
   executable: boolean;
+  executedHash: string;
   createdAt?: Date;
 }
 

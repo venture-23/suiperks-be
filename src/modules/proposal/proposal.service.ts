@@ -170,6 +170,9 @@ export class ProposalService extends BaseService<IProposalDocument> {
             $pull: {
               forVoterList: { address: proposal.voter, nftId: proposal.nft, votedAt: { $exists: true } },
             },
+            $push: {
+              refrainVoterList: { address: proposal.voter, nftId: proposal.nft, votedAt: new Date(Number(proposal.vote_period)) },
+            },
             $inc: { forVotes: -1, refrainVotes: 1 },
           },
         );
@@ -179,6 +182,9 @@ export class ProposalService extends BaseService<IProposalDocument> {
           {
             $pull: {
               againstVoterList: { address: proposal.voter, nftId: proposal.nft, votedAt: { $exists: true } },
+            },
+            $push: {
+              refrainVoterList: { address: proposal.voter, nftId: proposal.nft, votedAt: new Date(Number(proposal.vote_period)) },
             },
             $inc: { againstVotes: -1, refrainVotes: 1 },
           },
@@ -192,9 +198,10 @@ export class ProposalService extends BaseService<IProposalDocument> {
   async queueProposal(proposalEvent: PaginatedEvents) {
     try {
       if (proposalEvent.data.length === 0) return;
+      const txHash = proposalEvent.data[0].id.txDigest;
 
       const proposal = proposalEvent.data[0].parsedJson as any;
-      await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.QUEUE } });
+      await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.QUEUE, executedHash: txHash } });
     } catch (error) {
       console.log('[Proposal/QueueProposal]:', error);
     }
