@@ -202,10 +202,9 @@ export class ProposalService extends BaseService<IProposalDocument> {
   async queueProposal(proposalEvent: PaginatedEvents) {
     try {
       if (proposalEvent.data.length === 0) return;
-      const txHash = proposalEvent.data[0].id.txDigest;
 
       const proposal = proposalEvent.data[0].parsedJson as any;
-      await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.QUEUE, executedHash: txHash } });
+      await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.QUEUE } });
     } catch (error) {
       console.log('[Proposal/QueueProposal]:', error);
     }
@@ -213,9 +212,10 @@ export class ProposalService extends BaseService<IProposalDocument> {
   async executeProposal(proposalEvent: PaginatedEvents) {
     try {
       if (proposalEvent.data.length === 0) return;
+      const txHash = proposalEvent.data[0].id.txDigest;
 
       const proposal = proposalEvent.data[0].parsedJson as any;
-      await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.EXECUTED } });
+      await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.EXECUTED, executedHash: txHash } });
     } catch (error) {
       console.log('[Proposal/ExecuteProposal]:', error);
     }

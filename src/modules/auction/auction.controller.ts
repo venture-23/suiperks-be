@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import AuctionService from './auction.service';
+import ProposalService from '../proposal/proposal.service';
+import { Status } from '../proposal/proposal.interface';
 
 export class AuctionController {
   static instance: null | AuctionController;
@@ -49,10 +51,12 @@ export class AuctionController {
 
   public getTreasuryBalance = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const response = await this.auctionService.find({ settled: true });
+      const completedAuction = await this.auctionService.find({ settled: true });
+      const executedProposal = await ProposalService.find({ status: Status.EXECUTED });
 
-      const balance = response.reduce((sum, auction) => sum + auction.funds.at(-1).balance, 0);
-      return res.status(HttpStatus.OK).send({ balance });
+      const accumulated = completedAuction.reduce((sum, auction) => sum + auction.funds.at(-1).balance, 0);
+      const distributed = executedProposal.reduce((sum, proposal) => sum + proposal.seekAmount, 0);
+      return res.status(HttpStatus.OK).send({ balance: accumulated - distributed });
     } catch (error) {
       console.error('Error in finding:', error);
       return next(error);
