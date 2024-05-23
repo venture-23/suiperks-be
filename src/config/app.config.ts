@@ -15,6 +15,7 @@ const AppConfig = {
   mnemonic: process.env.MNEMONICS,
   package_id: process.env.PACKAGE_ID,
   dao_treasury: process.env.DAO_TREASURY,
+  auction_detail: process.env.AUCTION_DETAIL,
 } as const;
 
 export default AppConfig;
