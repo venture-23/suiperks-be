@@ -67,7 +67,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         type: 'auction::create_auction',
         txDigest: result.digest,
         sender: result.events[0].sender,
-        createdAt: new Date(Number(result.events[0].timestampMs)),
+        createdAt: new Date(Number(result.timestampMs)),
       });
     } catch (error) {
       console.log('[Auction/create]:', error);
@@ -141,7 +141,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         type: 'auction::settle_bid',
         txDigest: result.digest,
         sender: result.events[3].sender,
-        createdAt: new Date(Number(result.events[3].timestampMs)),
+        createdAt: new Date(Number(result.timestampMs)),
       });
     } catch (error) {
       console.log('[Auction/SettleBid]:', error);
