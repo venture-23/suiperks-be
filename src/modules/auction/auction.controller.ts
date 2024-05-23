@@ -100,7 +100,7 @@ export class AuctionController {
     try {
       const response = await this.auctionService.repository
         .find({ settled: true })
-        .select('nftImage nftName nftDescription title description amount highestBidder')
+        .select('nftImage nftId nftOwner nftName nftDescription title description amount highestBidder')
         .sort({ createdAt: -1 });
       return res.status(HttpStatus.OK).send(response);
     } catch (error) {

@@ -8,6 +8,7 @@ import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js/utils';
 import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import TransactionModel from '../transaction/transaction.modal';
+import { sha224 } from 'js-sha256';
 
 export class AuctionService extends BaseService<IAuctionDocument> {
   static instance: null | AuctionService;
@@ -34,7 +35,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
 
       tx.moveCall({
         target: `${AppConfig.package_id}::auction::create_auction`,
-        arguments: [tx.pure.u64('100000000'), tx.object(SUI_CLOCK_OBJECT_ID)],
+        arguments: [tx.object(sha224(title + description)), tx.pure.u64('100000000'), tx.object(SUI_CLOCK_OBJECT_ID)],
         typeArguments: ['0x2::sui::SUI'],
       });
       const result = await SuiClient.client.signAndExecuteTransactionBlock({
@@ -110,6 +111,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
       tx.moveCall({
         target: `${AppConfig.package_id}::auction::settle_bid`,
         arguments: [
+          tx.object(sha224(auctionExist.title + auctionExist.description)),
           tx.pure.string(nftName),
           tx.pure.string(nftDescription),
           tx.pure.string(nftImage),
