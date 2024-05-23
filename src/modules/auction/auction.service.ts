@@ -7,6 +7,7 @@ import { TransactionBlock } from '@mysten/sui.js/transactions';
 import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js/utils';
 import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import TransactionModel from '../transaction/transaction.modal';
 
 export class AuctionService extends BaseService<IAuctionDocument> {
   static instance: null | AuctionService;
@@ -60,6 +61,12 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         endTime: new Date(Number(txResponse?.end_time)),
         minBidIncrementPercentage: Number(txResponse?.min_bid_increment_percentage),
       });
+      await TransactionModel.create({
+        type: 'auction::create_auction',
+        txDigest: result.digest,
+        sender: result.transaction.data.sender,
+        createdAt: new Date(Number(result.timestampMs)),
+      });
     } catch (error) {
       console.log('[Auction/create]:', error);
       throw new Error(error);
@@ -70,9 +77,10 @@ export class AuctionService extends BaseService<IAuctionDocument> {
     try {
       if (bidEvent.data.length === 0) return;
       const bid = bidEvent.data[0].parsedJson as any;
-      const previousBid = await AuctionModel.findOne({ uid: bid?.auction_id, settled: false });
+      const txDigest = bidEvent.data[0].id.txDigest;
+      const hasSynced = await TransactionModel.findOne({ txDigest });
 
-      if (!previousBid || previousBid.amount > bid?.current_bid_amount) return; //Since this record is already added
+      if (hasSynced) throw new Error('Bid Already Placed, skipping...');
       await AuctionModel.updateOne(
         { uid: bid?.auction_id, settled: false },
         {
@@ -80,6 +88,12 @@ export class AuctionService extends BaseService<IAuctionDocument> {
           $set: { amount: bid?.next_auction_amount, highestBidder: bid?.highest_bidder },
         },
       );
+      await TransactionModel.create({
+        type: 'auction::AuctionEvent',
+        txDigest,
+        sender: bidEvent.data[0].sender,
+        createdAt: new Date(Number(bidEvent.data[0].timestampMs)),
+      });
     } catch (error) {
       console.log('[Auction/PlaceBid]:', error);
     }
@@ -116,11 +130,16 @@ export class AuctionService extends BaseService<IAuctionDocument> {
 
       const txResponse = result.events[3].parsedJson as any;
 
-      const response = await this.repository.findOneAndUpdate(
+      await this.repository.findOneAndUpdate(
         { uid: auctionInfo, settled: false },
         { $set: { settled: true, nftId: txResponse?.nft_id, nftOwner: txResponse?.nft_owner } },
       );
-      if (!response) throw new Error('Auction not found or already setteled');
+      await TransactionModel.create({
+        type: 'auction::settle_bid',
+        txDigest: result.digest,
+        sender: result.transaction.data.sender,
+        createdAt: new Date(Number(result.timestampMs)),
+      });
     } catch (error) {
       console.log('[Auction/SettleBid]:', error);
       throw new Error(error);

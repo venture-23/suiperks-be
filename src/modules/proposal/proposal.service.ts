@@ -5,6 +5,7 @@ import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
 import SuiClientService from '@/services/sui.client.service';
 import { AppConfig } from '@/config';
 import PointService from '@/modules/points/points.service';
+import TransactionModel from '../transaction/transaction.modal';
 
 export class ProposalService extends BaseService<IProposalDocument> {
   static instance: null | ProposalService;
@@ -31,10 +32,11 @@ export class ProposalService extends BaseService<IProposalDocument> {
   async addProposal(proposalEvent: PaginatedEvents) {
     try {
       if (proposalEvent.data.length === 0) return;
+      const txDigest = proposalEvent.data[0].id.txDigest;
+      const hasSynced = await TransactionModel.findOne({ txDigest });
+      if (hasSynced) throw new Error('Proposal Already Added, skipping...');
 
       const proposal = proposalEvent.data[0].parsedJson as any;
-      const previousAddedProposal = await ProposalModel.findOne({ objectId: proposal.proposal_id });
-      if (previousAddedProposal) return;
       await ProposalModel.updateOne(
         { hash: proposal.hash },
         {
@@ -52,6 +54,13 @@ export class ProposalService extends BaseService<IProposalDocument> {
         { $upsert: true },
       );
       await PointService.addPoints(proposal.proposer, 10);
+      await TransactionModel.create({
+        type: 'ethena_dao::NewProposal',
+        txDigest,
+        sender: proposalEvent.data[0].sender,
+        createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
+      });
+
       setTimeout(async () => await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.ACTIVE } }), 60 * 1000);
       setTimeout(
         async () => await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.WAITING } }),
@@ -65,21 +74,11 @@ export class ProposalService extends BaseService<IProposalDocument> {
   async castVote(proposalEvent: PaginatedEvents) {
     try {
       if (proposalEvent.data.length === 0) return;
+      const txDigest = proposalEvent.data[0].id.txDigest;
+      const hasSynced = await TransactionModel.findOne({ txDigest });
+      if (hasSynced) throw new Error('Vote Already Casted, skipping...');
 
       const proposal = proposalEvent.data[0].parsedJson as any;
-      let previousVotes;
-      if (proposal.agree)
-        previousVotes = await ProposalModel.findOne({
-          objectId: proposal.proposal_id,
-          forVoterList: { $elemMatch: { address: proposal.voter, nftId: proposal.nft } },
-        });
-      else
-        previousVotes = await ProposalModel.findOne({
-          objectId: proposal.proposal_id,
-          againstVoterList: { $elemMatch: { address: proposal.voter, nftId: proposal.nft } },
-        });
-
-      if (previousVotes) throw new Error('Vote Already Casted');
 
       if (proposal.agree)
         await ProposalModel.updateOne(
@@ -103,6 +102,12 @@ export class ProposalService extends BaseService<IProposalDocument> {
         );
 
       await PointService.addPoints(proposal.voter, 5);
+      await TransactionModel.create({
+        type: 'ethena_dao::CastVote',
+        txDigest,
+        sender: proposalEvent.data[0].sender,
+        createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
+      });
     } catch (error) {
       console.log('[Proposal/CastVote]:', error);
     }
@@ -110,9 +115,13 @@ export class ProposalService extends BaseService<IProposalDocument> {
   async changeVote(proposalEvent: PaginatedEvents) {
     try {
       if (proposalEvent.data.length === 0) return;
+      const txDigest = proposalEvent.data[0].id.txDigest;
+      const hasSynced = await TransactionModel.findOne({ txDigest });
+      if (hasSynced) throw new Error('Vote Already Changed, skipping...');
 
       const proposal = proposalEvent.data[0].parsedJson as any;
 
+      /** If the vote has changed from favour to against */
       if (!proposal.agree) {
         await ProposalModel.updateOne(
           { objectId: proposal.proposal_id },
@@ -154,6 +163,12 @@ export class ProposalService extends BaseService<IProposalDocument> {
       }
 
       await PointService.addPoints(proposal.voter, 5);
+      await TransactionModel.create({
+        type: 'ethena_dao::ChangeVote',
+        txDigest,
+        sender: proposalEvent.data[0].sender,
+        createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
+      });
     } catch (error) {
       console.log('[Proposal/ChangeVote]:', error);
     }
@@ -161,6 +176,9 @@ export class ProposalService extends BaseService<IProposalDocument> {
   async revokeVote(proposalEvent: PaginatedEvents) {
     try {
       if (proposalEvent.data.length === 0) return;
+      const txDigest = proposalEvent.data[0].id.txDigest;
+      const hasSynced = await TransactionModel.findOne({ txDigest });
+      if (hasSynced) throw new Error('Proposal Already Revoked, skipping...');
 
       const proposal = proposalEvent.data[0].parsedJson as any;
       const hasPreviouslyAggreed = await ProposalModel.findOne({
@@ -195,6 +213,12 @@ export class ProposalService extends BaseService<IProposalDocument> {
         );
 
       await PointService.addPoints(proposal.voter, -5);
+      await TransactionModel.create({
+        type: 'ethena_dao::RevokeVote',
+        txDigest,
+        sender: proposalEvent.data[0].sender,
+        createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
+      });
     } catch (error) {
       console.log('[Proposal/RevokeVote]:', error);
     }
@@ -202,9 +226,18 @@ export class ProposalService extends BaseService<IProposalDocument> {
   async queueProposal(proposalEvent: PaginatedEvents) {
     try {
       if (proposalEvent.data.length === 0) return;
+      const txDigest = proposalEvent.data[0].id.txDigest;
+      const hasSynced = await TransactionModel.findOne({ txDigest });
+      if (hasSynced) throw new Error('Proposal Previously Queued, skipping...');
 
       const proposal = proposalEvent.data[0].parsedJson as any;
       await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.QUEUE } });
+      await TransactionModel.create({
+        type: 'ethena_dao::QueuedProposal',
+        txDigest,
+        sender: proposalEvent.data[0].sender,
+        createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
+      });
     } catch (error) {
       console.log('[Proposal/QueueProposal]:', error);
     }
@@ -212,10 +245,18 @@ export class ProposalService extends BaseService<IProposalDocument> {
   async executeProposal(proposalEvent: PaginatedEvents) {
     try {
       if (proposalEvent.data.length === 0) return;
-      const txHash = proposalEvent.data[0].id.txDigest;
+      const txDigest = proposalEvent.data[0].id.txDigest;
+      const hasSynced = await TransactionModel.findOne({ txDigest });
+      if (hasSynced) throw new Error('Proposal Already Executed, skipping...');
 
       const proposal = proposalEvent.data[0].parsedJson as any;
-      await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.EXECUTED, executedHash: txHash } });
+      await ProposalModel.updateOne({ objectId: proposal.proposal_id }, { $set: { status: Status.EXECUTED, executedHash: txDigest } });
+      await TransactionModel.create({
+        type: 'ethena_dao::ExecuteProposal',
+        txDigest,
+        sender: proposalEvent.data[0].sender,
+        createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
+      });
     } catch (error) {
       console.log('[Proposal/ExecuteProposal]:', error);
     }

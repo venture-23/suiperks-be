@@ -2,11 +2,9 @@ import { ITransactionDocument } from './transaction.interface';
 import { model, Schema } from 'mongoose';
 
 const TransactionSchema: Schema<ITransactionDocument> = new Schema({
-  type: { type: String },
-  txDigest: { type: String },
-  eventSeq: { type: String },
-  sender: { type: String },
-  timestampMs: { type: Number },
+  type: { type: String, required: true },
+  txDigest: { type: String, required: true },
+  sender: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 });
 
