@@ -43,8 +43,10 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         options: {
           showEvents: true,
           showObjectChanges: true,
+          showRawInput: true,
         },
       });
+      console.log(result);
 
       const txResponse = result.events[0].parsedJson as any;
       await this.repository.create({
@@ -64,8 +66,8 @@ export class AuctionService extends BaseService<IAuctionDocument> {
       await TransactionModel.create({
         type: 'auction::create_auction',
         txDigest: result.digest,
-        sender: result.transaction.data.sender,
-        createdAt: new Date(Number(result.timestampMs)),
+        sender: result.events[0].sender,
+        createdAt: new Date(Number(result.events[0].timestampMs)),
       });
     } catch (error) {
       console.log('[Auction/create]:', error);
@@ -138,8 +140,8 @@ export class AuctionService extends BaseService<IAuctionDocument> {
       await TransactionModel.create({
         type: 'auction::settle_bid',
         txDigest: result.digest,
-        sender: result.transaction.data.sender,
-        createdAt: new Date(Number(result.timestampMs)),
+        sender: result.events[3].sender,
+        createdAt: new Date(Number(result.events[3].timestampMs)),
       });
     } catch (error) {
       console.log('[Auction/SettleBid]:', error);
