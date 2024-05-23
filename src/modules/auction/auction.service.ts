@@ -46,7 +46,6 @@ export class AuctionService extends BaseService<IAuctionDocument> {
           showRawInput: true,
         },
       });
-      console.log(result);
 
       const txResponse = result.events[0].parsedJson as any;
       await this.repository.create({
@@ -67,7 +66,6 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         type: 'auction::create_auction',
         txDigest: result.digest,
         sender: result.events[0].sender,
-        createdAt: new Date(Number(result.timestampMs)),
       });
     } catch (error) {
       console.log('[Auction/create]:', error);
@@ -141,7 +139,6 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         type: 'auction::settle_bid',
         txDigest: result.digest,
         sender: result.events[3].sender,
-        createdAt: new Date(Number(result.timestampMs)),
       });
     } catch (error) {
       console.log('[Auction/SettleBid]:', error);
