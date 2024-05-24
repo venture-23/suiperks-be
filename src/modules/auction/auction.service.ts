@@ -129,7 +129,14 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         },
       });
 
-      const txResponse = result.events[3].parsedJson as any;
+      let txResponse,
+        sender = '';
+      for (const event of result.events) {
+        if ((event.type = `${AppConfig.package_id}::::auction::SettleEvent`)) {
+          txResponse = event.parsedJson as any;
+          sender = event.sender;
+        }
+      }
 
       await this.repository.findOneAndUpdate(
         { uid: auctionInfo, settled: false },
@@ -138,7 +145,7 @@ export class AuctionService extends BaseService<IAuctionDocument> {
       await TransactionModel.create({
         type: 'auction::settle_bid',
         txDigest: result.digest,
-        sender: result.events[3].sender,
+        sender,
       });
     } catch (error) {
       console.log('[Auction/SettleBid]:', error);
