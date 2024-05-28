@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import PointController from './points.controller';
+import { AppConfig } from '@/config';
 
 class PointRoute {
-  public path = '/point';
+  public path = `/${AppConfig.versioning}/point`;
+  public router = Router();
 
-  constructor(private router: Router) {
+  constructor() {
     this.initializeRoutes();
   }
 
