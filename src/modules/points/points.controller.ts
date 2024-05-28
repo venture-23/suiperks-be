@@ -27,7 +27,7 @@ export class PointController {
     }
   };
 
-  public adminAuction = async (req: Request, res: Response, next: NextFunction) => {
+  public adminAction = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { pause } = req.query;
       await this.pointservice.adminAction(Boolean(pause as string));
