@@ -1,13 +1,21 @@
+import { PaginatedEvents } from '@mysten/sui.js/dist/cjs/client';
+import SuiClientService from '@/services/sui.client.service';
 import { BaseService } from '../base/base.service';
 import { IPointDocument } from './points.interface';
 import { PointModel } from './points.model';
+import { TransactionBlock } from '@mysten/sui.js/transactions';
+import { AppConfig } from '@/config';
+import TransactionModel from '../transaction/transaction.modal';
 
 class PointService extends BaseService<IPointDocument> {
   static instance: null | PointService;
+  private SuiClient: SuiClientService;
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor(repository = PointModel) {
     super(repository);
+    this.SuiClient = new SuiClientService();
+    setInterval(() => this.SuiClient.fetchEvents(`${AppConfig.package_id}::oxcoin::RewardClaimed`, this.rewardClaimed), 5000);
   }
 
   static getInstance() {
@@ -15,6 +23,103 @@ class PointService extends BaseService<IPointDocument> {
       this.instance = new PointService();
     }
     return this.instance;
+  }
+
+  async airdropToken() {
+    try {
+      const SuiClient = new SuiClientService();
+      const tx = new TransactionBlock();
+
+      const top3Addresses = await this.repository.aggregate([
+        {
+          $project: {
+            difference: { $subtract: ['$point', '$consumedPoint'] },
+            point: '$point',
+            walletAddress: '$walletAddress',
+          },
+        },
+        {
+          $sort: { difference: -1 },
+        },
+        { $limit: 3 },
+      ]);
+
+      console.log(top3Addresses);
+
+      for (const user of top3Addresses) {
+        tx.moveCall({
+          target: `${AppConfig.package_id}::oxcoin::add_top_three_voter_list`,
+          arguments: [
+            tx.object(AppConfig.admin_cap),
+            tx.object(AppConfig.directory),
+            tx.pure.address(user.walletAddress),
+            tx.pure.u64(user.point * 1000000000),
+          ],
+          typeArguments: ['0x2::sui::SUI'],
+        });
+      }
+
+      const result = await SuiClient.client.signAndExecuteTransactionBlock({
+        signer: SuiClient.keypair,
+        transactionBlock: tx,
+        options: {
+          showEvents: true,
+          showObjectChanges: true,
+        },
+      });
+
+      for (const user of top3Addresses) {
+        await this.repository.findOneAndUpdate({ walletAddress: user.walletAddress }, { $set: { claimable: user.point * 1000000000 } });
+      }
+      await TransactionModel.create({
+        type: 'oxcoin::add_top_three_voter_list',
+        txDigest: result.digest,
+        sender: SuiClient.keypair.toSuiAddress(),
+      });
+    } catch (error) {
+      console.log('[Token/Airdrop]:', error);
+      throw new Error(error);
+    }
+  }
+
+  async rewardClaimed(rewardEvent: PaginatedEvents) {
+    try {
+      if (rewardEvent.data.length === 0) return;
+      const reward = rewardEvent.data[0].parsedJson as any;
+      const txDigest = rewardEvent.data[0].id.txDigest;
+      const hasSynced = await TransactionModel.findOne({ txDigest });
+
+      if (hasSynced) throw new Error('Reward Already Claimed, skipping...');
+      await PointModel.updateOne(
+        { walletAddress: reward.claimed_id },
+        {
+          $set: { claimable: 0 },
+        },
+      );
+      await TransactionModel.create({
+        type: 'oxcoin::RewardClaimed',
+        txDigest,
+        sender: rewardEvent.data[0].sender,
+        createdAt: new Date(Number(rewardEvent.data[0].timestampMs)),
+      });
+    } catch (error) {
+      console.log('[Token/Claimed]:', error);
+    }
+  }
+  async adminAction(pause: boolean) {
+    const tx = new TransactionBlock();
+
+    tx.moveCall({
+      target: `${AppConfig.package_id}::oxcoin::${pause ? 'admin_pause' : 'admin_resume'}`,
+      arguments: [
+        tx.object(AppConfig.directory), // Proposal<DaoWitness>
+        tx.object(AppConfig.admin_cap),
+      ],
+    });
+    await this.SuiClient.client.signAndExecuteTransactionBlock({
+      signer: this.SuiClient.keypair,
+      transactionBlock: tx,
+    });
   }
 
   async addPoints(walletAddress: string, point: number) {

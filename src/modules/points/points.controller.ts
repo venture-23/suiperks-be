@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { PointModel } from './points.model';
 import PointsService from './points.service';
 import { HttpStatus } from '@nestjs/common';
+import { AppConfig } from '@/config';
 
 export class PointController {
   static instance: null | PointController;
@@ -15,6 +16,27 @@ export class PointController {
     }
     return this.instance;
   }
+
+  public airdropToken = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await this.pointservice.airdropToken();
+      return res.status(HttpStatus.OK).send({ message: 'token Airdropped' });
+    } catch (error) {
+      console.error('Error in getting:', error);
+      return next(error);
+    }
+  };
+
+  public adminAuction = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { pause } = req.query;
+      await this.pointservice.adminAction(Boolean(pause as string));
+      return res.status(HttpStatus.OK).send({ message: 'Success' });
+    } catch (error) {
+      console.error('Error:', error);
+      return next(error);
+    }
+  };
 
   // Route: GET: /point/leaderboard
   public getTopPoints = async (req: Request, res: Response, next: NextFunction) => {

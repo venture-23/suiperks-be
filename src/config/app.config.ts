@@ -16,6 +16,8 @@ const AppConfig = {
   package_id: process.env.PACKAGE_ID,
   dao_treasury: process.env.DAO_TREASURY,
   auction_detail: process.env.AUCTION_DETAIL,
+  admin_cap: process.env.ADMIN_CAP,
+  directory: process.env.DIRECTORY,
 } as const;
 
 export default AppConfig;
