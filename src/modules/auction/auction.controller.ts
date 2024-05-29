@@ -98,10 +98,18 @@ export class AuctionController {
 
   public findAllWinners = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const response = await this.auctionService.repository
+      const result = await this.auctionService.repository
         .find({ settled: true })
-        .select('nftImage nftId nftOwner nftName nftDescription title description amount highestBidder')
+        .select('nftImage nftId nftOwner nftName nftDescription title description amount funds highestBidder')
         .sort({ createdAt: -1 });
+      const response = await Promise.all(
+        result.map(auction => {
+          const detail = { ...auction.toObject(), amount: auction.funds.at(-1)?.balance };
+          delete (detail as any).funds;
+          return detail;
+        }),
+      );
+
       return res.status(HttpStatus.OK).send(response);
     } catch (error) {
       console.error('Error in finding:', error);
