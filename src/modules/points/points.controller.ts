@@ -86,7 +86,7 @@ export class PointController {
 
       const activity = await TransactionModel.find({ nftId });
       const nftDetails = await AuctionService.repository.findOne({ nftId }).select('nftImage nftName nftId nftDescription nftOwner');
-      return res.status(HttpStatus.OK).send({ activity, ...nftDetails.toObject() });
+      return res.status(HttpStatus.OK).send({ activity, ...nftDetails?.toObject() });
     } catch (error) {
       console.error('Error:', error);
       return next(error);
