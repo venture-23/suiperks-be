@@ -138,7 +138,22 @@ class PointService extends BaseService<IPointDocument> {
   }
 
   async getTopPoints(size = 10) {
-    return await this.repository.find({}).sort({ point: -1 }).limit(size);
+    return await this.repository.aggregate([
+      {
+        $project: {
+          gain: { $subtract: ['$point', '$consumedPoint'] },
+          walletAddress: '$walletAddress',
+          point: '$point',
+          consumedPoint: '$consumedPoint',
+          claimable: '$claimable',
+          totalClaimed: '$totalClaimed',
+        },
+      },
+      {
+        $sort: { point: -1 },
+      },
+      { $limit: size },
+    ]);
   }
 }
 
