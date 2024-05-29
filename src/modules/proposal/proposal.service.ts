@@ -37,6 +37,9 @@ export class ProposalService extends BaseService<IProposalDocument> {
       if (hasSynced) throw new Error('Proposal Already Added, skipping...');
 
       const proposal = proposalEvent.data[0].parsedJson as any;
+      const proposalExist = await ProposalModel.findOne({ hash: proposal.hash });
+      if (!proposalExist) throw new Error('Proposal Not found');
+
       await ProposalModel.updateOne(
         { hash: proposal.hash },
         {
@@ -51,13 +54,14 @@ export class ProposalService extends BaseService<IProposalDocument> {
             seekAmount: Number(proposal.seek_amount),
           },
         },
-        { $upsert: true },
       );
       await PointService.addPoints(proposal.proposer, 10);
       await TransactionModel.create({
         type: 'ethena_dao::NewProposal',
         txDigest,
         sender: proposalEvent.data[0].sender,
+        nftId: proposalExist.nftId,
+        message: `Proposal ${proposal.proposal_id.slice(0, 5)} was proposed by ${proposal.proposer}`,
         createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
       });
 
@@ -106,6 +110,8 @@ export class ProposalService extends BaseService<IProposalDocument> {
         type: 'ethena_dao::CastVote',
         txDigest,
         sender: proposalEvent.data[0].sender,
+        nftId: proposal.nft,
+        message: `Proposal ${proposal.proposal_id.slice(0, 5)} was voted ${proposal.agree ? 'in favour.' : 'against.'}`,
         createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
       });
     } catch (error) {
@@ -167,6 +173,11 @@ export class ProposalService extends BaseService<IProposalDocument> {
         type: 'ethena_dao::ChangeVote',
         txDigest,
         sender: proposalEvent.data[0].sender,
+        nftId: proposal.nft,
+        message: `Vote changed ${!proposal.agree ? 'from favour to against' : 'from against to favour '} for Proposal ${proposal.proposal_id.slice(
+          0,
+          5,
+        )}.`,
         createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
       });
     } catch (error) {
@@ -217,6 +228,8 @@ export class ProposalService extends BaseService<IProposalDocument> {
         type: 'ethena_dao::RevokeVote',
         txDigest,
         sender: proposalEvent.data[0].sender,
+        nftId: proposal.nft,
+        message: `Vote revoked for Proposal ${proposal.proposal_id.slice(0, 5)}.`,
         createdAt: new Date(Number(proposalEvent.data[0].timestampMs)),
       });
     } catch (error) {

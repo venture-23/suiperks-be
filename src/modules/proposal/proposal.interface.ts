@@ -20,6 +20,7 @@ export interface IProposal {
   title: string;
   details: string;
   proposer: string;
+  nftId: string;
   startTime: Date;
   endTime: Date;
   refrainVotes: number;

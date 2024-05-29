@@ -106,6 +106,7 @@ class PointService extends BaseService<IPointDocument> {
   async adminAction(pause: boolean) {
     try {
       const tx = new TransactionBlock();
+      const SuiClient = new SuiClientService();
 
       tx.moveCall({
         target: `${AppConfig.package_id}::oxcoin::${pause ? 'admin_pause' : 'admin_resume'}`,
@@ -114,17 +115,18 @@ class PointService extends BaseService<IPointDocument> {
           tx.object(AppConfig.admin_cap),
         ],
       });
-      const result = await this.SuiClient.client.signAndExecuteTransactionBlock({
-        signer: this.SuiClient.keypair,
+      const result = await SuiClient.client.signAndExecuteTransactionBlock({
+        signer: SuiClient.keypair,
         transactionBlock: tx,
       });
       await TransactionModel.create({
         type: pause ? 'oxcoin::admin_pause' : 'oxcoin::admin_resume',
         txDigest: result.digest,
-        sender: this.SuiClient.keypair.toSuiAddress(),
+        sender: SuiClient.keypair.toSuiAddress(),
       });
     } catch (error) {
       console.log('[Token/Action]:', error);
+      throw new Error(error);
     }
   }
 

@@ -146,6 +146,8 @@ export class AuctionService extends BaseService<IAuctionDocument> {
         type: 'auction::settle_bid',
         txDigest: result.digest,
         sender,
+        nftId: txResponse?.nft_id,
+        message: `Nft ${txResponse?.nft_id.slice(0, 5)} was minted to ${sender}`,
       });
     } catch (error) {
       console.log('[Auction/SettleBid]:', error);

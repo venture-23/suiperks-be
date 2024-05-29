@@ -1,9 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 import PointsService from './points.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
+import TransactionModel from '../transaction/transaction.modal';
 
 export class PointController {
   static instance: null | PointController;
+  private mintPaused = true;
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor(private pointservice = PointsService) {}
@@ -28,8 +30,12 @@ export class PointController {
   public adminAction = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { pause } = req.query;
-      await this.pointservice.adminAction(Boolean(pause as string));
-      return res.status(HttpStatus.OK).send({ message: 'Success' });
+      const shouldPause = Boolean(Number(pause as string));
+      await this.pointservice.adminAction(shouldPause);
+      this.mintPaused = shouldPause;
+      return res
+        .status(HttpStatus.OK)
+        .send({ message: `Success, Airdrop mint is now ${shouldPause ? 'Paused' : 'Resumed'}`, status: this.mintPaused });
     } catch (error) {
       console.error('Error:', error);
       return next(error);
@@ -63,16 +69,24 @@ export class PointController {
 
   public getClaimableTokenStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { walletAddress } = req.params;
-      const result = await this.pointservice.findOne({ walletAddress });
-
-      if (!result) throw new HttpException('No point found for user', HttpStatus.NOT_FOUND);
       return res.status(HttpStatus.OK).send({
-        claimable: result?.claimable ? true : false,
-        amount: result.claimable,
+        status: this.mintPaused,
+        messsage: this.mintPaused ? 'Airdrop mint is Paused' : 'Airdrop mint is Resumed',
       });
     } catch (error) {
-      console.error('Error in getting:', error);
+      console.error('Error:', error);
+      return next(error);
+    }
+  };
+
+  public nftActivity = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { nftId } = req.params;
+
+      const activity = await TransactionModel.find({ nftId });
+      return res.status(HttpStatus.OK).send(activity);
+    } catch (error) {
+      console.error('Error:', error);
       return next(error);
     }
   };
