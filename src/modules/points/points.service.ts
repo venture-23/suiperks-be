@@ -55,7 +55,6 @@ class PointService extends BaseService<IPointDocument> {
             tx.pure.address(user.walletAddress),
             tx.pure.u64(user.point * 1000000000),
           ],
-          typeArguments: ['0x2::sui::SUI'],
         });
       }
 
@@ -72,7 +71,7 @@ class PointService extends BaseService<IPointDocument> {
         await this.repository.findOneAndUpdate({ walletAddress: user.walletAddress }, { $set: { claimable: user.point * 1000000000 } });
       }
       await TransactionModel.create({
-        type: 'oxcoin::add_top_three_voter_list',
+        type: 'oxcoin::add_voter_list',
         txDigest: result.digest,
         sender: SuiClient.keypair.toSuiAddress(),
       });
@@ -90,12 +89,10 @@ class PointService extends BaseService<IPointDocument> {
       const hasSynced = await TransactionModel.findOne({ txDigest });
 
       if (hasSynced) throw new Error('Reward Already Claimed, skipping...');
-      await PointModel.updateOne(
-        { walletAddress: reward.claimed_id },
-        {
-          $set: { claimable: 0 },
-        },
-      );
+      const userPoint = await PointModel.findOne({ walletAddress: reward.claimed_id });
+      userPoint.consumedPoint = userPoint.point;
+      userPoint.claimable = 0;
+      await userPoint.save();
       await TransactionModel.create({
         type: 'oxcoin::RewardClaimed',
         txDigest,
@@ -107,19 +104,28 @@ class PointService extends BaseService<IPointDocument> {
     }
   }
   async adminAction(pause: boolean) {
-    const tx = new TransactionBlock();
+    try {
+      const tx = new TransactionBlock();
 
-    tx.moveCall({
-      target: `${AppConfig.package_id}::oxcoin::${pause ? 'admin_pause' : 'admin_resume'}`,
-      arguments: [
-        tx.object(AppConfig.directory), // Proposal<DaoWitness>
-        tx.object(AppConfig.admin_cap),
-      ],
-    });
-    await this.SuiClient.client.signAndExecuteTransactionBlock({
-      signer: this.SuiClient.keypair,
-      transactionBlock: tx,
-    });
+      tx.moveCall({
+        target: `${AppConfig.package_id}::oxcoin::${pause ? 'admin_pause' : 'admin_resume'}`,
+        arguments: [
+          tx.object(AppConfig.directory), // Proposal<DaoWitness>
+          tx.object(AppConfig.admin_cap),
+        ],
+      });
+      const result = await this.SuiClient.client.signAndExecuteTransactionBlock({
+        signer: this.SuiClient.keypair,
+        transactionBlock: tx,
+      });
+      await TransactionModel.create({
+        type: pause ? 'oxcoin::admin_pause' : 'oxcoin::admin_resume',
+        txDigest: result.digest,
+        sender: this.SuiClient.keypair.toSuiAddress(),
+      });
+    } catch (error) {
+      console.log('[Token/Action]:', error);
+    }
   }
 
   async addPoints(walletAddress: string, point: number) {

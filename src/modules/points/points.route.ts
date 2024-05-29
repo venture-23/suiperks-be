@@ -13,6 +13,7 @@ class PointRoute {
   private initializeRoutes() {
     this.router.get(`${this.path}/leaderboard`, PointController.getTopPoints);
     this.router.get(`/v1/token/airdrop`, PointController.airdropToken);
+    this.router.get(`/v1/token/claimable/:walletAddress`, PointController.getClaimableTokenStatus);
     this.router.get(`/v1/token/action`, PointController.adminAction);
     this.router.get(`${this.path}/:walletAddress`, PointController.getPointsForAddress);
   }

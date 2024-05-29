@@ -1,8 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
-import { PointModel } from './points.model';
 import PointsService from './points.service';
-import { HttpStatus } from '@nestjs/common';
-import { AppConfig } from '@/config';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 export class PointController {
   static instance: null | PointController;
@@ -57,6 +55,22 @@ export class PointController {
       const result = await this.pointservice.findOne({ walletAddress });
 
       return res.status(HttpStatus.OK).send(result);
+    } catch (error) {
+      console.error('Error in getting:', error);
+      return next(error);
+    }
+  };
+
+  public getClaimableTokenStatus = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { walletAddress } = req.params;
+      const result = await this.pointservice.findOne({ walletAddress });
+
+      if (!result) throw new HttpException('No point found for user', HttpStatus.NOT_FOUND);
+      return res.status(HttpStatus.OK).send({
+        claimable: result?.claimable ? true : false,
+        amount: result.claimable,
+      });
     } catch (error) {
       console.error('Error in getting:', error);
       return next(error);
