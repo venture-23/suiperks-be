@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import PointsService from './points.service';
 import { HttpStatus } from '@nestjs/common';
 import TransactionModel from '../transaction/transaction.modal';
+import AuctionService from '../auction/auction.service';
 
 export class PointController {
   static instance: null | PointController;
@@ -84,7 +85,8 @@ export class PointController {
       const { nftId } = req.params;
 
       const activity = await TransactionModel.find({ nftId });
-      return res.status(HttpStatus.OK).send(activity);
+      const nftDetails = await AuctionService.repository.findOne({ nftId }).select('nftImage nftName nftId nftDescription nftOwner');
+      return res.status(HttpStatus.OK).send({ activity, ...nftDetails.toObject() });
     } catch (error) {
       console.error('Error:', error);
       return next(error);
