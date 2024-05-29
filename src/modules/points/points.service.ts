@@ -44,8 +44,6 @@ class PointService extends BaseService<IPointDocument> {
         { $limit: 3 },
       ]);
 
-      console.log(top3Addresses);
-
       for (const user of top3Addresses) {
         tx.moveCall({
           target: `${AppConfig.package_id}::oxcoin::add_top_three_voter_list`,
@@ -70,6 +68,8 @@ class PointService extends BaseService<IPointDocument> {
       for (const user of top3Addresses) {
         await this.repository.findOneAndUpdate({ walletAddress: user.walletAddress }, { $set: { claimable: user.point * 1000000000 } });
       }
+      await this.repository.updateMany({}, { $set: { consumedPoint: '$point' } });
+
       await TransactionModel.create({
         type: 'oxcoin::add_voter_list',
         txDigest: result.digest,
@@ -90,8 +90,8 @@ class PointService extends BaseService<IPointDocument> {
 
       if (hasSynced) throw new Error('Reward Already Claimed, skipping...');
       const userPoint = await PointModel.findOne({ walletAddress: reward.claimed_id });
-      userPoint.consumedPoint = userPoint.point;
       userPoint.claimable = 0;
+      userPoint.totalClaimed = userPoint.totalClaimed + userPoint.claimable;
       await userPoint.save();
       await TransactionModel.create({
         type: 'oxcoin::RewardClaimed',
@@ -150,7 +150,7 @@ class PointService extends BaseService<IPointDocument> {
         },
       },
       {
-        $sort: { point: -1 },
+        $sort: { gain: -1 },
       },
       { $limit: size },
     ]);

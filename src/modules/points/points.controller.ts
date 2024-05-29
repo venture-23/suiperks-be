@@ -55,13 +55,13 @@ export class PointController {
       return next(error);
     }
   };
-  // Route: GET: /point/leaderboard
+
   public getPointsForAddress = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { walletAddress } = req.params;
       const result = await this.pointservice.findOne({ walletAddress });
 
-      return res.status(HttpStatus.OK).send(result);
+      return res.status(HttpStatus.OK).send({ ...result.toObject(), gain: result.point - result.consumedPoint });
     } catch (error) {
       console.error('Error in getting:', error);
       return next(error);
