@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import PointsService from './points.service';
-import { HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import TransactionModel from '../transaction/transaction.modal';
 import AuctionService from '../auction/auction.service';
 
@@ -86,6 +86,7 @@ export class PointController {
 
       const activity = await TransactionModel.find({ nftId });
       const nftDetails = await AuctionService.repository.findOne({ nftId }).select('nftImage nftName nftId nftDescription nftOwner');
+      if (!nftDetails) throw new HttpException('NFT not found', HttpStatus.NOT_FOUND);
       return res.status(HttpStatus.OK).send({ activity, ...nftDetails?.toObject() });
     } catch (error) {
       console.error('Error:', error);
