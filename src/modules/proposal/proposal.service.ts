@@ -168,7 +168,6 @@ export class ProposalService extends BaseService<IProposalDocument> {
         );
       }
 
-      await PointService.addPoints(proposal.voter, 5);
       await TransactionModel.create({
         type: 'ethena_dao::ChangeVote',
         txDigest,
