@@ -54,7 +54,7 @@ export class AuctionController {
       const completedAuction = await this.auctionService.find({ settled: true });
       const executedProposal = await ProposalService.find({ status: Status.EXECUTED });
 
-      const accumulated = completedAuction.reduce((sum, auction) => sum + auction.funds.at(-1).balance, 0);
+      const accumulated = completedAuction.reduce((sum, auction) => sum + (auction.funds.at(-1)?.balance || 0), 0);
       const distributed = executedProposal.reduce((sum, proposal) => sum + proposal.seekAmount, 0);
       return res.status(HttpStatus.OK).send({ balance: accumulated - distributed });
     } catch (error) {
